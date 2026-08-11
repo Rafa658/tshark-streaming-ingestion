@@ -20,13 +20,10 @@ help:
 	@echo "Note: Requires docker-compose. Install with: pip install docker-compose"
 
 install:
-	cd packages/shared && poetry install --no-root
-	cd ../worker-postgres && poetry install --no-root
-	cd ../ingestor && poetry install --no-root
-	cd ../.. && poetry install --no-root
+	poetry install
 
 dev:
-	poetry install --with dev --no-root
+	poetry install --with dev
 
 network:
 	docker network create ingestion-net 2>/dev/null || true
@@ -34,7 +31,7 @@ network:
 up: network
 	docker compose -f docker/mosquitto/docker-compose.yml up -d
 	docker compose -f docker/postgres/docker-compose.yml up -d
-	docker compose -f docker/worker-postgres/docker-compose.yml up -dd
+	docker compose -f docker/worker-postgres/docker-compose.yml up -d
 	docker compose -f docker/prometheus/docker-compose.yml up -d
 	docker compose -f docker/grafana/docker-compose.yml up -d
 

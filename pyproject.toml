@@ -1,12 +1,14 @@
 [tool.poetry]
-name = "tshark-streaming-ingestion"
-version = "0.1.0"
-description = "Streaming pipeline that ingests tshark packet capture data via MQTT into PostgreSQL with TimescaleDB"
-authors = ["Your Name <you@example.com>"]
-readme = "README.md"
+# The repo root is a workspace container, not a distributable package. The three
+# real packages live in packages/ and services/ and are installed from here in
+# editable mode so tests can import them without a per-package install dance.
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.13"
+tshark-shared = { path = "packages/shared", develop = true }
+ingestor = { path = "services/ingestor", develop = true }
+worker-postgres = { path = "services/worker-postgres", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 ruff = "*"
@@ -14,10 +16,6 @@ mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 testcontainers = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 100
@@ -31,3 +29,13 @@ ignore = []
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/shared/tests",
+    "services/ingestor/tests",
+    "services/worker-postgres/tests",
+]
+markers = [
+    "integration: tests that need Docker (mosquitto/timescaledb via testcontainers)",
+]

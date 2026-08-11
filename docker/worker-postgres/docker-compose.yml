@@ -10,7 +10,7 @@ services:
     networks:
       - ingestion-net
     healthcheck:
-      test: ["CMD", "poetry", "run", "python", "/app/healthcheck.py"]
+      test: ["CMD", "poetry", "run", "python", "/app/services/worker-postgres/healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -8,7 +8,7 @@ python = "^3.13"
 paho-mqtt = "*"
 loguru = "*"
 prometheus-client = "*"
-tshark-shared = {path = "/app/shared", develop = false}
+tshark-shared = { path = "../../packages/shared", develop = true }
 
 [build-system]
 requires = ["poetry-core"]
