@@ -1,0 +1,21 @@
+services:
+  worker-postgres:
+    build:
+      context: ../..
+      dockerfile: services/worker-postgres/Dockerfile
+    container_name: worker-postgres
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN:-postgresql://tshark_user:tshark_password@postgres:5432/tshark_db}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks:
+      - ingestion-net
+    healthcheck:
+      test: ["CMD", "poetry", "run", "python", "/app/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  ingestion-net:
+    external: true

@@ -1,0 +1,15 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - ingestion-net
+    restart: unless-stopped
+
+networks:
+  ingestion-net:
+    external: true

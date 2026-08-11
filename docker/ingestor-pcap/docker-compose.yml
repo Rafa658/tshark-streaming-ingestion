@@ -1,0 +1,17 @@
+services:
+  ingestor-pcap:
+    build:
+      context: ../..
+      dockerfile: services/ingestor/Dockerfile
+    container_name: ingestor-pcap
+    command: ["poetry", "run", "python", "-m", "ingestor", "--source", "pcap", "--pcap", "/data/pcap/sample.pcap", "--replay-loop"]
+    volumes:
+      - ../../data/pcap:/data/pcap
+    networks:
+      - ingestion-net
+    profiles: [replay]
+    restart: unless-stopped
+
+networks:
+  ingestion-net:
+    external: true

@@ -1,0 +1,155 @@
+{
+  "title": "Tshark Streaming Ingestion",
+  "uid": "tshark-streaming",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Packets published",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "thresholds": { "steps": [] }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(ingestor_msgs_published_total[1m])"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Rows inserted",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rows",
+          "thresholds": { "steps": [] }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(worker_rows_inserted_total[1m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "DB errors",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(worker_db_errors_total[1m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Dead-lettered",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [] }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(worker_deadletter_total[1m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Ingestion rate",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "pps" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(ingestor_msgs_published_total[1m])",
+          "legendFormat": "published"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(worker_msgs_consumed_total[1m])",
+          "legendFormat": "consumed"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Worker buffer size",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "rows", "min": 0 } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "worker_buffer_size"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Total RAM used",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": { "steps": [] }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(process_memory_bytes)"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "RAM per service",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 21 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": { "steps": [] }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_memory_bytes",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    }
+  ]
+}

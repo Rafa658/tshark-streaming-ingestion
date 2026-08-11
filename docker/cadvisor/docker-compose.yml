@@ -1,0 +1,19 @@
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    ports:
+      - "8090:8080"
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - ingestion-net
+    restart: unless-stopped
+
+networks:
+  ingestion-net:
+    external: true
