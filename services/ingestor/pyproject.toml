@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "ingestor"
+version = "0.1.0"
+description = "Tshark to MQTT ingestor for streaming"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+paho-mqtt = "*"
+loguru = "*"
+prometheus-client = "*"
+tshark-shared = {path = "/app/shared", develop = false}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
