@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "worker-postgres"
+version = "0.1.0"
+description = "MQTT to PostgreSQL worker for tshark streaming"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+paho-mqtt = "*"
+psycopg = "*"
+loguru = "*"
+prometheus-client = "*"
+tshark-shared = {path = "/app/shared", develop = false}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
