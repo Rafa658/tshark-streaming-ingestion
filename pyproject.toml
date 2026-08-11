@@ -43,6 +43,5 @@ ignore_missing_imports = true
 pythonpath = [
     "packages/shared/src",
     "services/ingestor/src",
-    "services/worker-postgres/src",
 ]
 testpaths = ["packages", "services"]

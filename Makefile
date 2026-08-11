@@ -21,7 +21,6 @@ help:
 
 install:
 	cd packages/shared && poetry install --no-root
-	cd ../worker-postgres && poetry install --no-root
 	cd ../ingestor && poetry install --no-root
 	cd ../.. && poetry install --no-root
 
