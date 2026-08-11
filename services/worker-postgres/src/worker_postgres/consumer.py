@@ -12,19 +12,12 @@ from worker_postgres.batcher import Batcher, BufferFull
 from worker_postgres.metrics import start_metrics_server, record_msg_consumed, record_rows_inserted, record_batch_flush, record_dead_letter, record_db_error, set_buffer_size
 
 
-class BufferFull(Exception):
-    pass
-
-
-class BufferFull(Exception):
-    pass
-
-
 class WorkerConsumer:
     def __init__(self):
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=worker_settings.MQTT_CLIENT_ID)
         self.client.enable_clean_session = not worker_settings.MQTT_SESSION_PERSISTENT
-        self.client.enable_logger()
+        if worker_settings.LOG_LEVEL.upper() == "DEBUG":
+            self.client.enable_logger()
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 
