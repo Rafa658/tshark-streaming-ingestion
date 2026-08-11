@@ -6,7 +6,11 @@ services:
     container_name: worker-postgres
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql://tshark_user:tshark_password@postgres:5432/tshark_db}
+      POSTGRES_TABLE: ${POSTGRES_TABLE:-packets}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      # published so the parity harness can scrape /metrics from the host
+      - "${WORKER_METRICS_PORT:-8001}:8000"
     networks:
       - ingestion-net
     healthcheck:

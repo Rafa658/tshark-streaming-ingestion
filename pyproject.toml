@@ -14,6 +14,13 @@ mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 testcontainers = "*"
+# runtime deps needed to import the workspace packages under test
+paho-mqtt = "*"
+psycopg = {extras = ["binary"], version = "*"}
+loguru = "*"
+prometheus-client = "*"
+pydantic-settings = "*"
+psutil = "*"
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,3 +38,11 @@ ignore = []
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "packages/shared/src",
+    "services/ingestor/src",
+    "services/worker-postgres/src",
+]
+testpaths = ["packages", "services"]

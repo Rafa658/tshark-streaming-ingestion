@@ -34,7 +34,7 @@ network:
 up: network
 	docker compose -f docker/mosquitto/docker-compose.yml up -d
 	docker compose -f docker/postgres/docker-compose.yml up -d
-	docker compose -f docker/worker-postgres/docker-compose.yml up -dd
+	docker compose -f docker/worker-postgres/docker-compose.yml up -d
 	docker compose -f docker/prometheus/docker-compose.yml up -d
 	docker compose -f docker/grafana/docker-compose.yml up -d
 

@@ -20,6 +20,7 @@ class IngestorSettings(Settings):
     TSHARK_BPF_FILTER: str = ""
     TSHARK_PCAP_PATH: str = ""
     TSHARK_REPLAY_LOOP: bool = False
+    TSHARK_REPLAY_RATE: float = 0.0
 
 
 class WorkerPostgresSettings(Settings):
@@ -28,6 +29,7 @@ class WorkerPostgresSettings(Settings):
     DB_BATCH_SIZE: int = 500
     DB_BATCH_FLUSH_SECONDS: int = 1
     DB_BUFFER_CAP: int = 50000
+    POSTGRES_TABLE: str = "packets"
 
 
 settings = Settings()
