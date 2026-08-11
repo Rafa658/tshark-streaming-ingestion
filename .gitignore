@@ -87,4 +87,4 @@ data/pcap/*.pcap
 
 # AI
 .agents/
-.graphify-out/
+graphify-out/
