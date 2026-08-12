@@ -1,4 +1,4 @@
-.PHONY: network up up-replay down logs e2e test lint sync-schema fetch-sample install dev observability obs-down help
+.PHONY: network up up-replay live down logs e2e test lint sync-schema fetch-sample install dev observability obs-down help
 
 help:
 	@echo "Available targets:"
@@ -7,6 +7,7 @@ help:
 	@echo "  make network       - Create external Docker network 'ingestion-net'"
 	@echo "  make up            - Start mosquitto, postgres, worker-postgres"
 	@echo "  make up-replay     - Start all services + ingestor-pcap (replay profile)"
+	@echo "  make live          - Live capture on host interface (sudo, IFACE=en0)"
 	@echo "  make down          - Stop all services"
 	@echo "  make logs          - Show logs from all services"
 	@echo "  make e2e           - Run end-to-end test with pcap replay"
@@ -39,6 +40,16 @@ up: network
 
 up-replay: up
 	docker compose -f docker/ingestor-pcap/docker-compose.yml --profile replay up -d
+
+live: up
+	@echo "Live capture on $${IFACE:-en0} (sudo needed for tshark BPF access)..."
+	@echo "Override: make live IFACE=en1  |  make live LIVE_ARGS='--bpf-filter \"not port 22\"'"
+	sudo env \
+		MQTT_HOST=localhost \
+		METRICS_PORT=$${INGESTOR_METRICS_PORT:-8002} \
+		PYTHONPATH=packages/shared/src:services/ingestor/src \
+		$$(which poetry) run python -m ingestor \
+		--source live --interface $${IFACE:-en0} $${LIVE_ARGS}
 
 down:
 	docker compose -f docker/mosquitto/docker-compose.yml down
