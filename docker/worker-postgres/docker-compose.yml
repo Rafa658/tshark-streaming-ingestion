@@ -1,16 +1,21 @@
 services:
   worker-postgres:
     build:
-      context: ../..
-      dockerfile: services/worker-postgres/Dockerfile
+      context: ../../services/worker-postgres
+      dockerfile: Dockerfile
     container_name: worker-postgres
     environment:
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql://tshark_user:tshark_password@postgres:5432/tshark_db}
+      POSTGRES_TABLE: ${POSTGRES_TABLE:-packets}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-worker-postgres-1}
+      GOMEMLIMIT: 18MiB
+    ports:
+      - "${WORKER_METRICS_PORT:-8001}:8000"
     networks:
       - ingestion-net
     healthcheck:
-      test: ["CMD", "poetry", "run", "python", "/app/healthcheck.py"]
+      test: ["CMD", "/worker", "-healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 3

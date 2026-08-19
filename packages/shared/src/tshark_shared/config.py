@@ -20,16 +20,8 @@ class IngestorSettings(Settings):
     TSHARK_BPF_FILTER: str = ""
     TSHARK_PCAP_PATH: str = ""
     TSHARK_REPLAY_LOOP: bool = False
-
-
-class WorkerPostgresSettings(Settings):
-    MQTT_CLIENT_ID: str = "worker-postgres-1"
-    POSTGRES_DSN: str = "postgresql://tshark_user:tshark_password@postgres:5432/tshark_db"
-    DB_BATCH_SIZE: int = 500
-    DB_BATCH_FLUSH_SECONDS: int = 1
-    DB_BUFFER_CAP: int = 50000
+    TSHARK_REPLAY_RATE: float = 0.0
 
 
 settings = Settings()
 ingestor_settings = IngestorSettings()
-worker_settings = WorkerPostgresSettings()

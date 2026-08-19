@@ -1,20 +1,10 @@
-FROM python:3.13.14-slim
+FROM golang:1.26.5-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags='-s -w' -o /worker ./cmd/worker
 
-# Install Poetry and PostgreSQL client libraries
-RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/* && \
-    pip install poetry
-
-WORKDIR /app
-
-COPY packages/shared/ /app/shared/
-RUN cd /app/shared && poetry install
-
-COPY services/worker-postgres/pyproject.toml /app/
-RUN poetry install --only main --no-root
-
-COPY services/worker-postgres/src /app/src
-RUN poetry install
-
-COPY services/worker-postgres/healthcheck.py /app/
-
-CMD ["poetry", "run", "python", "-m", "worker_postgres"]
+FROM scratch
+COPY --from=build /worker /worker
+ENTRYPOINT ["/worker"]

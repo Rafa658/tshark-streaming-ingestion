@@ -4,7 +4,24 @@ services:
       context: ../..
       dockerfile: services/ingestor/Dockerfile
     container_name: ingestor-pcap
-    command: ["poetry", "run", "python", "-m", "ingestor", "--source", "pcap", "--pcap", "/data/pcap/sample.pcap", "--replay-loop"]
+    command:
+      - poetry
+      - run
+      - python
+      - -m
+      - ingestor
+      - --source
+      - pcap
+      - --pcap
+      - /data/pcap/sample.pcap
+      - --replay-loop
+      - --rate
+      - "${REPLAY_RATE:-100}"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      # published so the parity harness can scrape /metrics from the host
+      - "${INGESTOR_METRICS_PORT:-8002}:8000"
     volumes:
       - ../../data/pcap:/data/pcap
     networks:

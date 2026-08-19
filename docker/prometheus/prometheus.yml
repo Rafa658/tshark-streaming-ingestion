@@ -18,3 +18,6 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["ingestor-pcap:8000"]
+      - targets: ["host.docker.internal:8002"]
+        labels:
+          source: "live-host"
