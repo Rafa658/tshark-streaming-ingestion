@@ -5,23 +5,30 @@ Streaming pipeline that ingests tshark packet capture data via MQTT into a Postg
 ## Architecture
 
 ```
-tshark (host) ──► Mosquitto MQTT broker (no auth v1)
-                      │
-                      ├─► worker-postgres ──► PostgreSQL + TimescaleDB (hypertable)
-                      │
-                      └─► (future: worker-s3, etc. each subscribe to same topic)
+tshark (host) ──► ingestor (Python) ──► Mosquitto MQTT broker (no auth v1)
+                                            │
+                                            ├─► worker-postgres (Go) ──► PostgreSQL + TimescaleDB (hypertable)
+                                            │
+                                            └─► (future: worker-s3, etc. each subscribe to same topic)
 ```
+
+`worker-postgres` was ported from Python to Go to cut its steady-state RSS footprint;
+`ingestor` remains Python since it's mostly `tshark` subprocess plumbing and must run on
+the host for live capture. The port was staged behind a measured gate — see `docs/PRD.md`
+for the throughput assumptions (100 pps) that framed the decision, and the git history
+(`feat(worker-postgres-go)`, `feat: cutover to Go worker-postgres`) for how it was validated.
 
 ### Key Architecture Choices
 
 - **Pure MQTT fan-out** — adding S3 subscriber = another MQTT client, no code change to ingestor
 - **Raw-data-first** — store full tshark `-T ek` line as JSONB (`payload` column), transform later
-- **Host-side ingestor for live capture** (macOS dev), containerized pcap replay; Linux prod swap path documented
-- **Single-thread worker** — paho-mqtt + psycopg v3, multi-row INSERT, batch @500 rows or 1s
-- **Backpressure on DB failures** — stop acking MQTT, buffer capped at 50k rows
+- **Host-side ingestor for live capture** (macOS dev, Python), containerized pcap replay; Linux prod swap path documented
+- **Go worker for steady-state footprint** — `worker-postgres` is a static Go binary on a
+  `scratch` base image (`pgx/v5` + `paho.mqtt.golang` + `client_golang`), capped at `GOMEMLIMIT=18MiB`
+- **Backpressure on DB failures and buffer cap** — stop acking MQTT, buffer capped at 50k rows
 - **Split-compose** — one service per docker-compose folder, shared external network, root Makefile orchestration
 - **At-least-once delivery** — MQTT QoS1, accept duplicates on retry (no dedup v1)
-- **Observability** — loguru JSON logging, `/metrics` exposed per service (no prom/grafana v1)
+- **Observability** — JSON logging, `/metrics` exposed per service via Prometheus + Grafana
 
 ## Quickstart
 
@@ -29,8 +36,10 @@ tshark (host) ──► Mosquitto MQTT broker (no auth v1)
 
 - macOS dev: `tshark` installed via Homebrew (`brew install tshark`)
 - Docker & Docker Compose
-- Poetry (`curl -sSL https://install.python-poetry.org | python3 -`)
+- Poetry (`curl -sSL https://install.python-poetry.org | python3 -`) — for `ingestor` and shared tooling
 - Python 3.13.14
+- Go 1.26+ — only needed if building/modifying `worker-postgres` outside Docker (the
+  compose build stage installs its own toolchain in-container)
 
 ### Setup
 
@@ -39,7 +48,7 @@ tshark (host) ──► Mosquitto MQTT broker (no auth v1)
 git clone <repo>
 cd tshark-streaming-ingestion
 
-# Install all packages with Poetry
+# Install Python packages with Poetry (ingestor + shared)
 make install
 
 # Install dev dependencies (for testing/linting)
@@ -48,13 +57,13 @@ make dev
 # Create shared Docker network
 make network
 
-# Start the stack
+# Start the stack (mosquitto, postgres, worker-postgres, prometheus, grafana)
 make up
 
-# In another terminal, run live capture via Poetry
-poetry run python -m ingestor --source live --interface en0
+# In another terminal, run live capture on the host (sudo needed for tshark BPF access)
+make live IFACE=en0
 
-# Or run pcap replay demo
+# Or run pcap replay demo instead of live capture
 make up-replay
 ```
 
@@ -68,14 +77,20 @@ docker compose -f docker/worker-postgres/docker-compose.yml logs -f
 
 # Query Postgres
 psql -h localhost -U tshark_user -d tshark_db -c "SELECT COUNT(*) FROM packets;"
+
+# worker-postgres metrics (Go, published on the host)
+curl -s localhost:8001/metrics | grep worker_
 ```
 
 ### Run Tests
 
 ```bash
-make test          # unit + integration (Poetry pytest)
+make test          # Python unit tests (Poetry pytest) - ingestor + shared
 make lint          # ruff + mypy (Poetry)
 make e2e           # full end-to-end with pcap replay
+
+# Go worker tests
+cd services/worker-postgres && go test ./...
 ```
 
 ### Teardown
@@ -84,11 +99,13 @@ make e2e           # full end-to-end with pcap replay
 make down          # stop all services
 ```
 
-## Poetry Workspace
+## Poetry Workspace (Python services)
 
-This is a Poetry workspace monorepo with the following structure:
+`ingestor` and `packages/shared` remain a Poetry workspace. `worker-postgres` is a
+standalone Go module (`services/worker-postgres/go.mod`) built via its own Dockerfile —
+it is not part of the Poetry workspace.
+
 - `packages/shared` — shared utilities and configuration
-- `services/worker-postgres` — MQTT to PostgreSQL worker
 - `services/ingestor` — tshark to MQTT ingestor
 
 Common Poetry commands:
@@ -102,6 +119,13 @@ poetry run ruff check .     # Lint
 poetry run mypy .           # Type check
 ```
 
+Common Go commands (from `services/worker-postgres`):
+```bash
+go build ./...              # Build
+go test ./...               # Run tests
+go vet ./...                # Static checks
+```
+
 ## Commands
 
 See [`COMMANDS.md`](COMMANDS.md) for the complete command reference including troubleshooting and metrics.
@@ -111,22 +135,24 @@ See [`COMMANDS.md`](COMMANDS.md) for the complete command reference including tr
 ```
 .
 ├── services/
-│   ├── ingestor/          # tshark capture + MQTT publish (host live, container pcap)
-│   └── worker-postgres/   # MQTT subscribe → Postgres batch insert
+│   ├── ingestor/          # tshark capture + MQTT publish (Python; host live, container pcap)
+│   └── worker-postgres/   # MQTT subscribe → Postgres batch insert (Go; own go.mod, cmd/, internal/)
 ├── packages/
-│   └── shared/            # pydantic config, MQTT topic constants, shared models
+│   └── shared/            # pydantic config, MQTT topic constants (used by ingestor)
 ├── schema/
 │   └── 001_init.sql       # hypertable DDL, indexes, retention (source of truth)
 ├── docker/
 │   ├── mosquitto/         # MQTT broker compose + config
 │   ├── postgres/          # TimescaleDB compose + init
-│   ├── worker-postgres/   # worker compose
+│   ├── worker-postgres/   # Go worker compose (scratch image)
 │   └── ingestor-pcap/     # pcap replay compose (replay profile)
+├── tools/
+│   └── parity/            # black-box e2e/parity harness (Go) used to validate the worker port
 ├── data/pcap/             # sample pcap for replay
 ├── docs/
 │   └── PRD.md             # full product requirements document (18 sections)
-├── Makefile               # orchestration: network/up/down/logs/e2e/test/lint/sync-schema
-├── pyproject.toml         # workspace root: dev deps, ruff, mypy
+├── Makefile               # orchestration: network/up/live/down/logs/e2e/test/lint/sync-schema
+├── pyproject.toml         # Python workspace root: dev deps, ruff, mypy (ingestor + shared only)
 └── README.md              # this file
 ```
 
