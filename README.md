@@ -82,6 +82,35 @@ psql -h localhost -U tshark_user -d tshark_db -c "SELECT COUNT(*) FROM packets;"
 curl -s localhost:8001/metrics | grep worker_
 ```
 
+## Metrics & Dashboards
+
+Both services expose Prometheus metrics on `/metrics`; Prometheus scrapes them and
+Grafana renders the `tshark-streaming` dashboard on top.
+
+| Where | URL | Notes |
+|---|---|---|
+| Prometheus | http://localhost:9090 | Raw metrics, ad-hoc PromQL queries, scrape target status |
+| Grafana | http://localhost:3030 | Dashboard: **Tshark Streaming Ingestion** (`admin` / `admin`, local dev only) |
+| `worker-postgres` `/metrics` | http://localhost:8001/metrics | Go worker, MQTT→Postgres |
+| `ingestor` `/metrics` | http://localhost:8002/metrics | Python ingestor (pcap replay or `make live`) |
+
+Key series (also what the dashboard's Grafana panels query — renaming any of these
+breaks the panels):
+
+| Metric | What it means |
+|---|---|
+| `ingestor_msgs_published_total` | Packets published to MQTT by the ingestor |
+| `worker_msgs_consumed_total` | Packets consumed off MQTT by the worker |
+| `worker_rows_inserted_total` | Rows successfully batch-inserted into Postgres |
+| `worker_batch_flush_total` | Number of batch flushes to the DB |
+| `worker_db_errors_total` | Failed DB writes (retried with backoff before counting) |
+| `worker_deadletter_total` | Unparseable ek lines published to the dead-letter topic |
+| `worker_buffer_size` | Current in-memory buffer depth (backpressure engages at `DB_BUFFER_CAP`) |
+| `process_memory_bytes{service=...}` | RSS per service — the number the Go port was measured against |
+
+`make observability` starts Prometheus + Grafana + cadvisor standalone if you only want
+the dashboards without the full ingestion stack; `make obs-down` stops them.
+
 ### Run Tests
 
 ```bash
