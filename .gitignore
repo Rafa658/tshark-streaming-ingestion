@@ -81,6 +81,9 @@ docker/postgres/data/
 .DS_Store
 Thumbs.db
 
+# Environment overrides (copy .env.example -> .env, never commit real secrets)
+.env
+
 # Data
 data/pcap/*.pcap
 !data/pcap/.gitkeep
